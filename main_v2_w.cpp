@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <fstream>
 #include "shapefil.h"
 
 using namespace std;
@@ -12,7 +13,8 @@ struct point {
     int id;
     float x;
     float y;
-    point(int id, float x, float y): id(id), x(x), y(y) {}
+    point(): id(0), x(0.0), y(0.0) {} // Constructor predeterminado
+    point(int id, float x, float y): id(id), x(x), y(y) {} // Constructor con argumentos
 };
 
 // Euclidean distance between two points
@@ -44,10 +46,14 @@ unordered_map<int, point> read_nodes(const string& filename) {
 
     int numRecords = DBFGetRecordCount(dbf);
     for (int i = 0; i < numRecords; i++) {
-        int id = DBFReadIntegerAttribute(dbf, i, 0);
-        double y = DBFReadDoubleAttribute(dbf, i, 1);
-        double x = DBFReadDoubleAttribute(dbf, i, 2);
-        nodes[id] = point(id, x, y);
+        int id = DBFReadIntegerAttribute(dbf, i, 0); // Reading ID
+        double y = DBFReadDoubleAttribute(dbf, i, 1); // Reading Y
+        double x = DBFReadDoubleAttribute(dbf, i, 2); // Reading X
+        if (nodes.find(id) == nodes.end()) {
+            nodes[id] = point(id, x, y);
+        } else {
+            cerr << "Duplicate node id found: " << id << endl;
+        }
     }
 
     DBFClose(dbf);
@@ -65,10 +71,12 @@ vector<edge> read_edges(const string& filename, const unordered_map<int, point>&
 
     int numRecords = DBFGetRecordCount(dbf);
     for (int i = 0; i < numRecords; i++) {
-        int u = DBFReadIntegerAttribute(dbf, i, 0);
-        int v = DBFReadIntegerAttribute(dbf, i, 1);
+        int u = DBFReadIntegerAttribute(dbf, i, 0); // Reading start node ID
+        int v = DBFReadIntegerAttribute(dbf, i, 1); // Reading end node ID
         if (nodes.find(u) != nodes.end() && nodes.find(v) != nodes.end()) {
             edges.push_back(edge(nodes.at(u), nodes.at(v)));
+        } else {
+            cerr << "Edge with non-existent nodes found: " << u << " -> " << v << endl;
         }
     }
 
@@ -78,10 +86,30 @@ vector<edge> read_edges(const string& filename, const unordered_map<int, point>&
 
 int main() {
     // Read nodes and edges
-    unordered_map<int, point> nodes = read_nodes("nodes_v2.dbf");
-    vector<edge> edges = read_edges("edges.dbf", nodes);
+    unordered_map<int, point> nodes = read_nodes("../../nodes.dbf");
+    vector<edge> edges = read_edges("../../edges.dbf", nodes);
+
+    // Open a CSV file for writing
+    ofstream csvFile("edges.csv");
+
+    // Write the header
+    csvFile << "Node1_x,Node1_y,Node2_x,Node2_y,Distance\n";
 
     // Output edges
+    for (const auto& e : edges) {
+        csvFile << e.p1.x << "," << e.p1.y << ","
+                << e.p2.x << "," << e.p2.y << ","
+                << e.size << "\n";
+    }
+
+    // Close the file
+    csvFile.close();
+
+    // Output debug information
+    for (const auto& node : nodes) {
+        cout << "Node ID: " << node.first << " - (" << node.second.x << ", " << node.second.y << ")\n";
+    }
+
     for (const auto& e : edges) {
         cout << "Edge from (" << e.p1.x << ", " << e.p1.y << ") to ("
              << e.p2.x << ", " << e.p2.y << ") with middle point ("
