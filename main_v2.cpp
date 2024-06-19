@@ -12,7 +12,8 @@ struct point {
     int id;
     float x;
     float y;
-    point(int id, float x, float y): id(id), x(x), y(y) {}
+    point() : id(-1), x(0.0), y(0.0) {}  // Constructor por defecto
+    point(int id, float x, float y) : id(id), x(x), y(y) {}
 };
 
 // Euclidean distance between two points
@@ -30,7 +31,7 @@ struct edge {
     point p2;
     float size;
     point middle;
-    edge(point p1, point p2): p1(p1), p2(p2), size(euclidean_distance(p1, p2)), middle(middle_edge(p1, p2)) {}
+    edge(point p1, point p2) : p1(p1), p2(p2), size(euclidean_distance(p1, p2)), middle(middle_edge(p1, p2)) {}
 };
 
 // Function to read nodes_v2.dbf
@@ -75,6 +76,18 @@ vector<edge> read_edges(const string& filename, const unordered_map<int, point>&
     DBFClose(dbf);
     return edges;
 }
+
+// Struct QuadTree
+struct QuadTree {
+    point p1;
+    point p2;
+    QuadTree* NW;
+    QuadTree* NE;
+    QuadTree* SW;
+    QuadTree* SE;
+    vector<edge> edges;
+    QuadTree(point p1, point p2) : p1(p1), p2(p2), NW(nullptr), NE(nullptr), SW(nullptr), SE(nullptr) {}
+};
 
 int main() {
     // Read nodes and edges
